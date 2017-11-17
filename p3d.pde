@@ -97,6 +97,8 @@ class Car {
   float moveY;
   float moveDist;
   
+  float cameraDist;
+  
   Car(float bottomZ) {
     stroke = 0;
     bodyColor = 200;
@@ -126,7 +128,9 @@ class Car {
     
     moveX = 0;
     moveY = 0;
-    moveDist = 5;
+    moveDist = 10;
+    
+    cameraDist = 100;
   }
   
   void turnLeft() {
@@ -144,6 +148,11 @@ class Car {
   void moveForward() {
     moveX += -moveDist * sin(rotZ + rotZBase);
     moveY += moveDist * cos(rotZ + rotZBase);
+  }
+  
+  void moveBackward() {
+    moveX -= -moveDist * sin(rotZ + rotZBase);
+    moveY -= moveDist * cos(rotZ + rotZBase);
   }
   
   void windows() {
@@ -210,6 +219,13 @@ class Car {
     popMatrix();
   }
   
+  /** Sets car position to be a little in front of camera. */
+  void setToCamera(VirtualCamera cam) {
+    moveX = cam.eyeY;
+    moveY = cam.eyeX;
+    rotZ = cam.eyeDir;
+  }
+  
 }
 
 class Ground {
@@ -225,6 +241,46 @@ class Ground {
     fill(0x66, 0xCD, 0x00);
     yRectangle(-1000, level, -1000, 2000, 2000);
     popMatrix();
+  }
+  
+}
+
+class VirtualCamera {
+  
+  float eyeX, eyeY, eyeZ, eyeDir;
+  static final float MOVE_SPEED = 20;
+  static final float TURN_SPEED = PI/50;
+  float DIR_DIST = height/2 / tan(PI/6);
+  
+  public VirtualCamera(float x, float y, float z) {
+    eyeX = x;
+    eyeY = y;
+    eyeZ = z;
+    eyeDir = PI/2;
+  }
+  
+  public void setCamera() {
+    float cx = eyeX + DIR_DIST * cos(eyeDir);
+    float cz = eyeZ + DIR_DIST * sin(eyeDir);
+    camera(eyeX, eyeY, eyeZ, cx, eyeY, cz, 0, 1, 0);
+  }
+  
+  public void forward() {
+    eyeX += MOVE_SPEED * cos(eyeDir);
+    eyeZ += MOVE_SPEED * sin(eyeDir);
+  }
+  
+  public void backward() {
+    eyeX -= MOVE_SPEED * cos(eyeDir);
+    eyeZ -= MOVE_SPEED * sin(eyeDir);
+  }
+  
+  public void turnLeft() {
+    eyeDir -= TURN_SPEED;
+  }
+  
+  public void turnRight() {
+    eyeDir += TURN_SPEED;
   }
   
 }
@@ -262,6 +318,7 @@ class ControllerData {
 
 Car car;
 Ground ground;
+VirtualCamera vc;
 
 Serial port;
 
@@ -273,6 +330,7 @@ void setup() {
   float groundLevel = -150;
   car = new Car(groundLevel);
   ground = new Ground(groundLevel);
+  vc = new VirtualCamera(width/2, height/2, 0);
   //port = new Serial(this, "COM3", 9600);
 }
 
@@ -291,13 +349,32 @@ void draw() {
       } catch (IndexOutOfBoundsException ioobe) {}
     }
   } */
-  if (keyPressed) {
+  /* if (keyPressed) {
     if (keyCode == LEFT) {
       car.turnLeft();
     } else if (keyCode == RIGHT) {
       car.turnRight();
     } else if (keyCode == UP) {
       car.moveForward();
+    } else if (keyCode == DOWN) {
+      car.moveBackward();
     }
+    //car.setCamera();
+  } */
+  if (keyPressed) {
+    if (keyCode == LEFT) {
+      vc.turnLeft();
+    }
+    if (keyCode == RIGHT) {
+      vc.turnRight();
+    }
+    if (keyCode == UP) {
+      vc.forward();
+    }
+    if (keyCode == DOWN) {
+      vc.backward();
+    }
+    //car.setToCamera(vc);
   }
+  vc.setCamera();
 }
