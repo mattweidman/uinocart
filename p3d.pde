@@ -1,3 +1,4 @@
+import java.util.LinkedList;
 import processing.serial.*;
 
 void xRectangle(float x, float y, float z, float ylen, float zlen) {
@@ -76,12 +77,7 @@ class Car {
   float topWidth;
   float pBottom;
   
-  float tDown;
-  float shift;
-  
-  float rotZBase;
   float rotZ;
-  float dRotZ;
   
   float bodyHeight;
   float bodyLength;
@@ -94,65 +90,39 @@ class Car {
   float tireGirth;
   
   float moveX;
-  float moveY;
-  float moveDist;
-  
-  float cameraDist;
+  float moveZ;
   
   Car(float bottomZ) {
+    // colors
     stroke = 0;
     bodyColor = 200;
     tireColor = 100;
     
-    tDown = 50;
-    rotZBase = PI/2;
-    rotZ = rotZBase;
-    dRotZ = PI/60;
-    shift = -50;
+    // rotation
+    rotZ = PI/2;
     
+    // tires
     tireX = 75;
     tireRadius = 30;
     tireGirth = 30;
     tireZ = bottomZ + tireRadius;
     
+    // body
     bodyBottom = tireZ + 20;
     bodyHeight = 50;
     bodyLength = 150;
     bodyWidth = 75;
     
+    // windows
     pWidth = bodyWidth;
     pLength = bodyLength - 50;
     pHeight = 50;
     topWidth = 50;
     pBottom = bodyBottom + bodyHeight;
     
+    // displacement
     moveX = 0;
-    moveY = 0;
-    moveDist = 10;
-    
-    cameraDist = 100;
-  }
-  
-  void turnLeft() {
-    rotZ -= dRotZ;
-  }
-  
-  void turnRight() {
-    rotZ += dRotZ;
-  }
-  
-  void setTurn(float turnRads) {
-    rotZ = rotZBase + turnRads;
-  }
-  
-  void moveForward() {
-    moveX += -moveDist * sin(rotZ + rotZBase);
-    moveY += moveDist * cos(rotZ + rotZBase);
-  }
-  
-  void moveBackward() {
-    moveX -= -moveDist * sin(rotZ + rotZBase);
-    moveY -= moveDist * cos(rotZ + rotZBase);
+    moveZ = 0;
   }
   
   void windows() {
@@ -210,8 +180,8 @@ class Car {
   
   void display() {
     pushMatrix();
+    translate(moveX, 0, moveZ);
     rotateX(PI/2);
-    translate(moveX, moveY, 0);
     rotateZ(rotZ);
     windows();
     body();
@@ -221,9 +191,9 @@ class Car {
   
   /** Sets car position to be a little in front of camera. */
   void setToCamera(VirtualCamera cam) {
-    moveX = cam.eyeY;
-    moveY = cam.eyeX;
-    rotZ = cam.eyeDir;
+    moveX = cam.centerX - 320;
+    moveZ = cam.centerZ;
+    rotZ = cam.getCarDir();
   }
   
 }
@@ -231,56 +201,109 @@ class Car {
 class Ground {
   
   float level;
+  float gwidth = 2000;
+  PImage img;
   
   Ground(float lev) {
     level = -lev;
+    img = loadImage("checkerboard.png");
   }
   
   void display() {
-    pushMatrix();
-    fill(0x66, 0xCD, 0x00);
-    yRectangle(-1000, level, -1000, 2000, 2000);
-    popMatrix();
+    float x = -gwidth/2, y = level, z = -gwidth/2, xlen = gwidth, zlen = gwidth;
+    beginShape();
+    texture(img);
+    //fill(0x66, 0xCD, 0x00);
+    vertex(x, y, z, 0, 0);
+    vertex(x+xlen, y, z, 0, 2000);
+    vertex(x+xlen, y, z+zlen, 2000, 2000);
+    vertex(x, y, z+zlen, 2000, 0);
+    endShape();
   }
   
 }
 
 class VirtualCamera {
   
-  float eyeX, eyeY, eyeZ, eyeDir;
+  // x, y, z coordinates of center of car, where camera is pointing
+  float centerX, centerY, centerZ;
+  
+  // Last directions that eye was pointing. A queue is used instead
+  // of a single value so that the camera lags behind the car, so
+  // you can see all of the car.
+  LinkedList<Float> eyeDirs;
+  int numEyeDirs = 7;
+  int numRestingFrames = 0;
+  
+  // speed of moving forward or backward
   static final float MOVE_SPEED = 20;
+  
+  // speed of turning left or right
   static final float TURN_SPEED = PI/50;
-  float DIR_DIST = height/2 / tan(PI/6);
+  
+  // distance from camera to car
+  float EYE_DIST = 500;
   
   public VirtualCamera(float x, float y, float z) {
-    eyeX = x;
-    eyeY = y;
-    eyeZ = z;
-    eyeDir = PI/2;
+    centerX = x;
+    centerY = y;
+    centerZ = z;
+    
+    eyeDirs = new LinkedList();
+    for (int i=0; i<numEyeDirs; i++) {
+      eyeDirs.add(PI/2);
+    }
   }
   
   public void setCamera() {
-    float cx = eyeX + DIR_DIST * cos(eyeDir);
-    float cz = eyeZ + DIR_DIST * sin(eyeDir);
-    camera(eyeX, eyeY, eyeZ, cx, eyeY, cz, 0, 1, 0);
+    float eyeDir = eyeDirs.getFirst();
+    float rx = cos(eyeDir);
+    float rz = sin(eyeDir);
+    float cx = centerX + EYE_DIST * rx;
+    float cz = centerZ + EYE_DIST * rz;
+    float eyeX = centerX - EYE_DIST * rx;
+    float eyeZ = centerZ - EYE_DIST * rz;
+    camera(eyeX, centerY, eyeZ - 100, cx, centerY, cz, 0, 1, 0);
   }
   
   public void forward() {
-    eyeX += MOVE_SPEED * cos(eyeDir);
-    eyeZ += MOVE_SPEED * sin(eyeDir);
+    float eyeDir = getCarDir();
+    centerX += MOVE_SPEED * cos(eyeDir);
+    centerZ += MOVE_SPEED * sin(eyeDir);
   }
   
   public void backward() {
-    eyeX -= MOVE_SPEED * cos(eyeDir);
-    eyeZ -= MOVE_SPEED * sin(eyeDir);
+    float eyeDir = getCarDir();
+    centerX -= MOVE_SPEED * cos(eyeDir);
+    centerZ -= MOVE_SPEED * sin(eyeDir);
   }
   
   public void turnLeft() {
-    eyeDir -= TURN_SPEED;
+    float prevEyeDir = eyeDirs.getLast();
+    eyeDirs.removeFirst();
+    eyeDirs.addLast(prevEyeDir - TURN_SPEED);
+    numRestingFrames = 0;
   }
   
   public void turnRight() {
-    eyeDir += TURN_SPEED;
+    float prevEyeDir = eyeDirs.getLast();
+    eyeDirs.removeFirst();
+    eyeDirs.addLast(prevEyeDir + TURN_SPEED);
+    numRestingFrames = 0;
+  }
+  
+  public float getCarDir() {
+    return eyeDirs.getLast();
+  }
+  
+  /** Keep the queue flipping after car stops turning.  */
+  public void adjustWhileResting() {
+    if (numRestingFrames < numEyeDirs) {
+      float prevEyeDir = eyeDirs.getLast();
+      eyeDirs.removeFirst();
+      eyeDirs.addLast(prevEyeDir);
+      numRestingFrames += 1;
+    }
   }
   
 }
@@ -374,7 +397,12 @@ void draw() {
     if (keyCode == DOWN) {
       vc.backward();
     }
-    //car.setToCamera(vc);
+    if (!(keyCode == LEFT || keyCode == RIGHT)) {
+      vc.adjustWhileResting();
+    }
+    car.setToCamera(vc);
+  } else {
+    vc.adjustWhileResting();
   }
   vc.setCamera();
 }
