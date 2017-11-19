@@ -236,10 +236,10 @@ class VirtualCamera {
   int numRestingFrames = 0;
   
   // speed of moving forward or backward
-  static final float MOVE_SPEED = 20;
+  static final float MOVE_SPEED = 40;
   
   // speed of turning left or right
-  static final float TURN_SPEED = PI/50;
+  static final float TURN_SPEED = PI/40;
   
   // distance from camera to car
   float EYE_DIST = 500;
