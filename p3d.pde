@@ -11,6 +11,17 @@ void xRectangle(float x, float y, float z, float ylen, float zlen) {
   endShape();
 }
 
+void xRectangleImage(float x, float y, float z, float ylen, float zlen, PImage img) {
+  beginShape();
+  texture(img);
+  vertex(x, y, z, 0, img.height);
+  vertex(x, y+ylen, z, img.width, img.height);
+  vertex(x, y+ylen, z+zlen, img.width, 0);
+  vertex(x, y, z+zlen, 0, 0);
+  vertex(x, y, z, 0, img.height);
+  endShape();
+}
+
 void yRectangle(float x, float y, float z, float xlen, float zlen) {
   beginShape();
   vertex(x, y, z);
@@ -92,6 +103,10 @@ class Car {
   float moveX;
   float moveZ;
   
+  float plateWidth;
+  float plateHeight;
+  PImage plateImg;
+  
   Car(float bottomZ) {
     // colors
     stroke = 0;
@@ -123,6 +138,11 @@ class Car {
     // displacement
     moveX = 0;
     moveZ = 0;
+    
+    // license plate
+    plateHeight = bodyHeight * 0.7;
+    plateWidth = plateHeight * 1.5;
+    plateImg = loadImage("licenseplate.png");
   }
   
   void windows() {
@@ -178,6 +198,15 @@ class Car {
     yCylinder(-tireX, bodyWidth-1-tireGirth, tireZ, tireRadius, tireGirth, 20);
   }
   
+  void licensePlate() {
+    beginShape();
+    fill(0);
+    xRectangleImage(-bodyLength-1, -plateWidth/2, 
+      bodyBottom + bodyHeight/2 - plateHeight/2, 
+      plateWidth, plateHeight, plateImg);
+    endShape();
+  }
+  
   void display() {
     pushMatrix();
     translate(moveX, 0, moveZ);
@@ -185,6 +214,7 @@ class Car {
     rotateZ(rotZ);
     windows();
     body();
+    licensePlate();
     tires();
     popMatrix();
   }
@@ -236,7 +266,7 @@ class VirtualCamera {
   int numRestingFrames = 0;
   
   // speed of moving forward or backward
-  static final float MOVE_SPEED = 40;
+  static final float MOVE_SPEED = 50;
   
   // speed of turning left or right
   static final float TURN_SPEED = PI/40;
@@ -296,6 +326,14 @@ class VirtualCamera {
     return eyeDirs.getLast();
   }
   
+  /* */
+  public void changeDir(float rads) {
+    float prevEyeDir = eyeDirs.getLast();
+    eyeDirs.removeFirst();
+    eyeDirs.addLast(prevEyeDir + rads);
+    numRestingFrames = 0;
+  }
+  
   /** Keep the queue flipping after car stops turning.  */
   public void adjustWhileResting() {
     if (numRestingFrames < numEyeDirs) {
@@ -316,9 +354,9 @@ class ControllerData {
   ControllerData(String s) {
     String[] parts = split(s, ' ');
     accy = int(parts[0]);
-    leftButton = parts[1] == "1";
-    midButton = parts[2] == "1";
-    rightButton = parts[3] == "1";
+    leftButton = parts[1].equals("1");
+    midButton = parts[2].equals("1");
+    rightButton = parts[3].equals("1");
   }
   
   int getAccy() {
@@ -339,6 +377,8 @@ class ControllerData {
   
 }
 
+final float MAX_ACC = pow(2, 16);
+
 Car car;
 Ground ground;
 VirtualCamera vc;
@@ -354,7 +394,7 @@ void setup() {
   car = new Car(groundLevel);
   ground = new Ground(groundLevel);
   vc = new VirtualCamera(width/2, height/2, 0);
-  //port = new Serial(this, "COM3", 9600);
+  port = new Serial(this, "COM3", 9600);
 }
 
 void draw() {
@@ -362,16 +402,30 @@ void draw() {
   translate(width/2, height/2, -100);
   ground.display();
   car.display();
-  /* if (0 < port.available()) {
+  if (0 < port.available()) {
     String readVal = port.readStringUntil('\n');
     if (readVal != null) {
       try {
         ControllerData cd = new ControllerData(readVal);
-        float turnRads = - cd.getAccy() / 10000.0;
-        car.setTurn(turnRads);
+        
+        // turn
+        float turnRads = asin(- cd.getAccy() / MAX_ACC);
+        vc.changeDir(turnRads);
+        
+        // move forward/backward
+        if (cd.leftButtonOn()) {
+          vc.forward();
+        }
+        if (cd.midButtonOn()) {
+          vc.backward();
+        }
+        
+        // set camera and car
+        car.setToCamera(vc);
+        vc.setCamera();
       } catch (IndexOutOfBoundsException ioobe) {}
     }
-  } */
+  }
   /* if (keyPressed) {
     if (keyCode == LEFT) {
       car.turnLeft();
@@ -384,7 +438,7 @@ void draw() {
     }
     //car.setCamera();
   } */
-  if (keyPressed) {
+  /* if (keyPressed) {
     if (keyCode == LEFT) {
       vc.turnLeft();
     }
@@ -404,5 +458,5 @@ void draw() {
   } else {
     vc.adjustWhileResting();
   }
-  vc.setCamera();
+  vc.setCamera(); */
 }
