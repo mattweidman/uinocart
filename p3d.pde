@@ -80,7 +80,7 @@ class Car {
   
   float stroke;
   float tireColor;
-  float bodyColor;
+  int bodyColor;
   
   float pWidth;
   float pLength;
@@ -110,7 +110,7 @@ class Car {
   Car(float bottomZ) {
     // colors
     stroke = 0;
-    bodyColor = 200;
+    bodyColor = 0x0000ff;
     tireColor = 100;
     
     // rotation
@@ -181,7 +181,7 @@ class Car {
   }
   
   void body() {
-    fill(bodyColor);
+    fill(10, 40, 125);
     rectangularPrism(-bodyLength, -bodyWidth, bodyBottom, 
       bodyLength*2, bodyWidth*2, bodyHeight);
   }
@@ -465,6 +465,9 @@ void setup() {
   car = new Car(groundLevel);
   ground = new Ground(groundLevel);
   vc = new VirtualCamera(width/2, height/2, 0);
+  vc.centerX = 2800;
+  car.setToCamera(vc);
+  vc.setCamera();
   port = new Serial(this, "COM3", 9600);
 }
 
