@@ -402,13 +402,32 @@ class Bullet {
     
   }
   
-  void display() {
+  void makeSphere(float cx, float cy, float cz, float r) {
     pushMatrix();
-    translate(moveX, centerHeight, moveZ);
+    translate(cx, cy, cz);
+    sphere(r);
+    popMatrix();
+  }
+  
+  
+  void display() {
     fill(255, 0, 0);
     stroke(255, 0, 0);
-    sphere(rBig);
-    popMatrix();
+    makeSphere(moveX, centerHeight, moveZ, rBig);
+    makeSphere(moveX, centerHeight + distMid, moveZ, rMid);
+    makeSphere (moveX, centerHeight - distMid, moveZ, rMid);
+    makeSphere (moveX + cos(moveDir - PI/2)*distMid, centerHeight, 
+      moveZ + sin(moveDir - PI/2)*distMid, rMid);
+    makeSphere (moveX - cos(moveDir - PI/2)*distMid, centerHeight, 
+      moveZ - sin(moveDir - PI/2)*distMid, rMid);
+      
+  
+    makeSphere(moveX, centerHeight + distSmall, moveZ, rSmall);
+    makeSphere (moveX, centerHeight - distSmall, moveZ, rSmall);
+    makeSphere (moveX + cos(moveDir - PI/2)*distSmall, centerHeight, 
+      moveZ + sin(moveDir - PI/2)*distSmall, rSmall);
+    makeSphere (moveX - cos(moveDir - PI/2)*distSmall, centerHeight, 
+      moveZ - sin(moveDir - PI/2)*distSmall, rSmall);
   }  
   
   void move() {
