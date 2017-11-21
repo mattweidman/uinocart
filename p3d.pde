@@ -231,23 +231,24 @@ class Car {
 class Ground {
   
   float level;
-  float gwidth = 2000;
+  float gwidth = 6000;
   PImage img;
   
   Ground(float lev) {
     level = -lev;
-    img = loadImage("checkerboard.png");
+    img = loadImage("track1.png");
   }
   
   void display() {
     float x = -gwidth/2, y = level, z = -gwidth/2, xlen = gwidth, zlen = gwidth;
     beginShape();
     texture(img);
+    stroke(0);
     //fill(0x66, 0xCD, 0x00);
     vertex(x, y, z, 0, 0);
-    vertex(x+xlen, y, z, 0, 2000);
-    vertex(x+xlen, y, z+zlen, 2000, 2000);
-    vertex(x, y, z+zlen, 2000, 0);
+    vertex(x+xlen, y, z, 0, img.height);
+    vertex(x+xlen, y, z+zlen, img.width, img.height);
+    vertex(x, y, z+zlen, img.width, 0);
     endShape();
   }
   
@@ -346,6 +347,76 @@ class VirtualCamera {
   
 }
 
+class Block {
+  float w, h, d;
+  float x, y, z;
+  
+  Block (float x, float z) {
+    this.x = x;
+    this.z = z;
+    w = 100;
+    h = 100;
+    d = 100;
+    y = 85;
+  }
+  
+  void display (){
+   pushMatrix();
+   translate(x, y, z);
+   fill(0, 240, 100);
+   stroke(0, 0, 0);
+   box(w, h, d);
+   popMatrix();
+  }
+}
+
+class Bullet {
+  
+  float rBig; // radius of biggest ball
+  float rMid; // radius of medium balls
+  float rSmall; // radius of smallest balls
+  
+  float centerHeight; // height of center biggest ball
+  float separation; // distance between balls
+  float distMid; // distance from center to center of medium balls
+  float distSmall; // distance from center to center of small balls
+  
+  float moveX;
+  float moveZ;
+  float moveDir;
+  static final float SPEED = 150;
+  
+  /** size: radius of center ball */
+  Bullet(float size, float x, float y, float z, float dir) {
+    rBig = size;
+    rMid = size/2;
+    rSmall = size/4;
+    centerHeight = y;
+    moveX = x;
+    moveZ = z;
+    moveDir = dir;
+    
+    separation = size / 4;
+    distMid = rBig + rMid + separation;
+    distSmall = rBig + rMid*2 + separation*2 + rSmall;
+    
+  }
+  
+  void display() {
+    pushMatrix();
+    translate(moveX, centerHeight, moveZ);
+    fill(255, 0, 0);
+    stroke(255, 0, 0);
+    sphere(rBig);
+    popMatrix();
+  }  
+  
+  void move() {
+    moveX += cos(moveDir)*SPEED;
+    moveZ += sin(moveDir)*SPEED; 
+  }
+}
+
 class ControllerData {
   
   int accy;
@@ -382,7 +453,7 @@ final float MAX_ACC = pow(2, 16);
 Car car;
 Ground ground;
 VirtualCamera vc;
-
+Bullet bullet;
 Serial port;
 
 int turnThreshold = 1000;
@@ -402,6 +473,10 @@ void draw() {
   translate(width/2, height/2, -100);
   ground.display();
   car.display();
+  if (bullet != null) { 
+    bullet.display();
+    bullet.move();
+  }
   if (0 < port.available()) {
     String readVal = port.readStringUntil('\n');
     if (readVal != null) {
@@ -418,6 +493,9 @@ void draw() {
         }
         if (cd.midButtonOn()) {
           vc.backward();
+        }
+        if (cd.rightButtonOn()) {
+          bullet = new Bullet(50, car.moveX, -50, car.moveZ, car.rotZ);   
         }
         
         // set camera and car
