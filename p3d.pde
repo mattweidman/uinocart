@@ -1,6 +1,15 @@
 import java.util.LinkedList;
 import processing.serial.*;
 
+/**
+ * UINOCART DISPLAY CODE
+ * Annemaayke Ammerlaan and Matthew Weidman
+ * Uses Processing API to show a car moving around. 
+ * Communicates with Arduino using Serial port COM3. 
+ */
+ 
+String portName = "COM3";
+
 void xRectangle(float x, float y, float z, float ylen, float zlen) {
   beginShape();
   vertex(x, y, z);
@@ -389,8 +398,8 @@ class Bullet {
   /** size: radius of center ball */
   Bullet(float size, float x, float y, float z, float dir) {
     rBig = size;
-    rMid = size/2;
-    rSmall = size/4;
+    rMid = size*2/3;
+    rSmall = size/3;
     centerHeight = y;
     moveX = x;
     moveZ = z;
@@ -411,23 +420,18 @@ class Bullet {
   
   
   void display() {
+    
     fill(255, 0, 0);
-    stroke(255, 0, 0);
+    noStroke();
     makeSphere(moveX, centerHeight, moveZ, rBig);
-    makeSphere(moveX, centerHeight + distMid, moveZ, rMid);
-    makeSphere (moveX, centerHeight - distMid, moveZ, rMid);
-    makeSphere (moveX + cos(moveDir - PI/2)*distMid, centerHeight, 
-      moveZ + sin(moveDir - PI/2)*distMid, rMid);
-    makeSphere (moveX - cos(moveDir - PI/2)*distMid, centerHeight, 
-      moveZ - sin(moveDir - PI/2)*distMid, rMid);
-      
-  
-    makeSphere(moveX, centerHeight + distSmall, moveZ, rSmall);
-    makeSphere (moveX, centerHeight - distSmall, moveZ, rSmall);
-    makeSphere (moveX + cos(moveDir - PI/2)*distSmall, centerHeight, 
-      moveZ + sin(moveDir - PI/2)*distSmall, rSmall);
-    makeSphere (moveX - cos(moveDir - PI/2)*distSmall, centerHeight, 
-      moveZ - sin(moveDir - PI/2)*distSmall, rSmall);
+    
+    fill(255, 165, 0);
+    makeSphere(moveX - distMid * cos(moveDir), centerHeight, 
+      moveZ - distMid * sin(moveDir), rMid);
+    
+    fill(255, 255, 0);
+    makeSphere(moveX - distSmall * cos(moveDir), centerHeight,
+      moveZ - distSmall * sin(moveDir), rSmall);
   }  
   
   void move() {
@@ -487,7 +491,7 @@ void setup() {
   vc.centerX = 2800;
   car.setToCamera(vc);
   vc.setCamera();
-  port = new Serial(this, "COM3", 9600);
+  port = new Serial(this, portName, 9600);
 }
 
 void draw() {
@@ -526,37 +530,4 @@ void draw() {
       } catch (IndexOutOfBoundsException ioobe) {}
     }
   }
-  /* if (keyPressed) {
-    if (keyCode == LEFT) {
-      car.turnLeft();
-    } else if (keyCode == RIGHT) {
-      car.turnRight();
-    } else if (keyCode == UP) {
-      car.moveForward();
-    } else if (keyCode == DOWN) {
-      car.moveBackward();
-    }
-    //car.setCamera();
-  } */
-  /* if (keyPressed) {
-    if (keyCode == LEFT) {
-      vc.turnLeft();
-    }
-    if (keyCode == RIGHT) {
-      vc.turnRight();
-    }
-    if (keyCode == UP) {
-      vc.forward();
-    }
-    if (keyCode == DOWN) {
-      vc.backward();
-    }
-    if (!(keyCode == LEFT || keyCode == RIGHT)) {
-      vc.adjustWhileResting();
-    }
-    car.setToCamera(vc);
-  } else {
-    vc.adjustWhileResting();
-  }
-  vc.setCamera(); */
 }
